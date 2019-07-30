@@ -6,7 +6,7 @@ public class Link {
 
     public Link(String url, String targetFile) {
         this.url = url;
-        this.targetFile = targetFile.replaceAll("[\\\\/:*?\"<>|]", "_");
+        this.targetFile = targetFile;
     }
 
     public String getUrl() {

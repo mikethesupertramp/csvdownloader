@@ -109,6 +109,8 @@ public class DownloadManagerImpl implements DownloadManager {
             }
         }
 
+        fileName = fileName.replaceAll("[\\\\/:*?\"<>|]", "_");
+
         String targetFile = Paths.get(outputDir, fileName).toString();
 
         return new Link(url, targetFile);
