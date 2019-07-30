@@ -9,10 +9,10 @@ import me.mikethesupertramp.csvdownloader.presentation.MainScreenView;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class App extends Application {
-    public static Console console;
-
     @Override
     public void start(Stage primaryStage) throws Exception {
         Map<Object, Object> injectSource = new HashMap<>();
@@ -21,7 +21,6 @@ public class App extends Application {
 
         MainScreenView view = new MainScreenView();
         MainScreenPresenter presenter = (MainScreenPresenter) view.getPresenter();
-        console = presenter;
 
         primaryStage.setScene(new Scene(view.getView()));
         primaryStage.show();

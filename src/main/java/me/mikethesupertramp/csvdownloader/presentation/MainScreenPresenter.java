@@ -1,5 +1,6 @@
 package me.mikethesupertramp.csvdownloader.presentation;
 
+import com.opencsv.CSVWriter;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Platform;
@@ -12,15 +13,18 @@ import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.util.Duration;
-import me.mikethesupertramp.csvdownloader.Console;
-import me.mikethesupertramp.csvdownloader.DownloaderPool;
+import me.mikethesupertramp.csvdownloader2.DownloadManagerImpl;
+import me.mikethesupertramp.csvdownloader2.Link;
 
 import javax.inject.Inject;
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.net.URL;
+import java.util.Map;
 import java.util.ResourceBundle;
 
-public class MainScreenPresenter implements Initializable, Console {
+public class MainScreenPresenter implements Initializable {
     public TextField tfNumberOfThreads;
     public TextField tfOutputDirectory;
     public TextField tfCSVFile;
@@ -60,7 +64,7 @@ public class MainScreenPresenter implements Initializable, Console {
             return;
         }
 
-        int threads = 0;
+        int threads;
         try {
             threads = Integer.parseInt(tfNumberOfThreads.getText());
         } catch (NumberFormatException e) {
@@ -70,23 +74,31 @@ public class MainScreenPresenter implements Initializable, Console {
 
 
         print("--- started download ---");
-        DownloaderPool downloaderPool = new DownloaderPool();
-        downloaderPool.download(threads, csvFile.getPath(), outDir.getPath());
+        /*DownloaderPool downloaderPool = new DownloaderPool();
+        downloaderPool.download(threads, csvFile.getPath(), outDir.getPath());*/
+
+        DownloadManagerImpl dm = new DownloadManagerImpl(csvFile.getPath(), outDir.getPath());
+        dm.startDownload(threads);
 
         Timeline timeline = new Timeline();
         timeline.setCycleCount(Timeline.INDEFINITE);
         timeline.getKeyFrames().add(new KeyFrame(Duration.seconds(1), e -> {
-            if(downloaderPool.isFinished()) {
-                timeline.stop();
-            } else {
-                print("downloaded " + downloaderPool.getTotalFilesProcessed() + " files");
-            }
-
+                print("progress: " + dm.getSuccessCount() + "/" + dm.getTotalCount() + " files");
         }));
         timeline.playFromStart();
+
+        dm.setOnFinished(() -> {
+            timeline.stop();
+            print("--- Download finished ---");
+            print("Successful: " + dm.getSuccessCount());
+            print("Failed: " + dm.getFailCount());
+            print("Skipped: " + dm.getSkippedCount());
+
+
+            writeCSVExperimental(dm.getFailedLinks());
+        });
     }
 
-    @Override
     public void print(String message) {
         Platform.runLater(() -> {
             console.setText(console.getText() + message + System.lineSeparator());
@@ -105,5 +117,19 @@ public class MainScreenPresenter implements Initializable, Console {
         alert.setHeaderText(null);
         alert.setContentText(msg);
         alert.show();
+    }
+
+    private void writeCSVExperimental(Map<Link, String> fails) {
+        try(CSVWriter writer = new CSVWriter(new FileWriter("./fails.csv"))) {
+            fails.forEach((link, message) -> {
+                writer.writeNext(new String[] {new File(link.getTargetFile()).getName(), link.getUrl(), message});
+            });
+            writer.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+
+
     }
 }
